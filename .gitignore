@@ -7,6 +7,6 @@
 /vendor
 
 # Compiled files
-/validation
-/vue-mc.js
-/vue-mc.es.js
+# /validation
+# /vue-mc.js
+# /vue-mc.es.js

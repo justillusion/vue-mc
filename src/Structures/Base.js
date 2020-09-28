@@ -25,6 +25,10 @@ const REQUEST_CONTINUE  = 0;
 const REQUEST_REDUNDANT = 1;
 const REQUEST_SKIP      = 2;
 
+export default function getVM () {
+    return typeof window !== 'undefined' && window.Vue ? window.Vue : Vue
+}
+
 /**
  * Base class for all things common between Model and Collection.
  */
@@ -42,8 +46,8 @@ class Base {
             writable:     false,
         });
 
-        Vue.set(this, '_listeners', {});  // Event listeners
-        Vue.set(this, '_options',   {});  // Internal option store
+        getVM().set(this, '_listeners', {});  // Event listeners
+        getVM().set(this, '_options',   {});  // Internal option store
 
         this.setOptions(options);
         this.boot();
@@ -204,7 +208,7 @@ class Base {
      * @param {...Object} options One or more objects of options.
      */
     setOptions(...options) {
-        Vue.set(this, '_options', defaultsDeep(
+        getVM().set(this, '_options', defaultsDeep(
             {},
             ...options,                 // Given options
             this.options(),             // Instance defaults

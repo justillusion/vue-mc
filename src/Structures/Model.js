@@ -1,5 +1,4 @@
-import Vue             from 'vue'
-import Base            from './Base.js'
+import Base, { getVM } from './Base.js'
 import Collection      from './Collection.js'
 import castArray       from 'lodash/castArray'
 import cloneDeep       from 'lodash/cloneDeep'
@@ -67,18 +66,18 @@ const copyFrom = function(source, target, keys) {
 
     each(source, (value, key) => {
         if (isArray(value)) {
-            Vue.set(target, key, []);
+            getVM().set(target, key, []);
             copyFrom(value, target[key]);
 
         } else if (isPlainObject(value)) {
-            Vue.set(target, key, {});
+            getVM().set(target, key, {});
             copyFrom(value, target[key]);
 
         } else if (isObject(value) && isFunction(value.clone)) {
-            Vue.set(target, key, value.clone());
+            getVM().set(target, key, value.clone());
 
         } else {
-            Vue.set(target, key, cloneDeep(value));
+            getVM().set(target, key, cloneDeep(value));
         }
     });
 }
@@ -131,11 +130,11 @@ class Model extends Base {
     constructor(attributes = {}, collection = null, options = {}) {
         super(options);
 
-        Vue.set(this, '_collections', {});  // Collections that contain this model.
-        Vue.set(this, '_reference',   {});  // Saved attribute state.
-        Vue.set(this, '_attributes',  {});  // Active attribute state.
-        Vue.set(this, '_mutations',   {});  // Mutator cache.
-        Vue.set(this, '_errors',      {});  // Validation errors.
+        getVM().set(this, '_collections', {});  // Collections that contain this model.
+        getVM().set(this, '_reference',   {});  // Saved attribute state.
+        getVM().set(this, '_attributes',  {});  // Active attribute state.
+        getVM().set(this, '_mutations',   {});  // Mutator cache.
+        getVM().set(this, '_errors',      {});  // Validation errors.
 
         this.clearState();
 
@@ -179,8 +178,8 @@ class Model extends Base {
         // Make sure that the clone has the same existing options.
         clone.setOptions(this.getOptions());
 
-        Vue.set(clone, '_reference', reference);
-        Vue.set(clone, '_attributes', attributes);
+        getVM().set(clone, '_reference', reference);
+        getVM().set(clone, '_attributes', attributes);
 
         return clone;
     }
@@ -211,7 +210,7 @@ class Model extends Base {
     /**
      * @returns {Object} An empty representation of this model.
      *                   It's important that all model attributes have a default
-     *                   value in order to be reactive in Vue.
+     *                   value in order to be reactive in getVM().
      */
     defaults() {
         return {};
@@ -317,7 +316,7 @@ class Model extends Base {
             throw new Error('Collection is not valid');
         }
 
-        Vue.set(this._collections, collection._uid, collection);
+        getVM().set(this._collections, collection._uid, collection);
     }
 
     /**
@@ -338,7 +337,7 @@ class Model extends Base {
             throw new Error('Collection is not valid');
         }
 
-        Vue.delete(this._collections, collection._uid);
+        getVM().delete(this._collections, collection._uid);
     }
 
     /**
@@ -349,8 +348,8 @@ class Model extends Base {
     clearAttributes() {
         let defaults = this.defaults();
 
-        Vue.set(this, '_attributes', cloneDeep(defaults));
-        Vue.set(this, '_reference',  cloneDeep(defaults));
+        getVM().set(this, '_attributes', cloneDeep(defaults));
+        getVM().set(this, '_reference',  cloneDeep(defaults));
     }
 
     /**
@@ -368,10 +367,10 @@ class Model extends Base {
      * Resets model state, ie. `loading`, etc back to their initial states.
      */
     clearState() {
-        Vue.set(this, 'loading',  false);
-        Vue.set(this, 'saving',   false);
-        Vue.set(this, 'deleting', false);
-        Vue.set(this, 'fatal',    false);
+        getVM().set(this, 'loading',  false);
+        getVM().set(this, 'saving',   false);
+        getVM().set(this, 'deleting', false);
+        getVM().set(this, 'fatal',    false);
     }
 
     /**
@@ -433,7 +432,7 @@ class Model extends Base {
     mutate(attribute) {
         if (isUndefined(attribute)) {
             each(this._attributes, (value, attribute) => {
-                Vue.set(this._attributes, attribute, this.mutated(attribute, value));
+                getVM().set(this._attributes, attribute, this.mutated(attribute, value));
             });
 
         // Only mutate specific attributes.
@@ -442,7 +441,7 @@ class Model extends Base {
                 let current = this.get(attribute);
                 let mutated = this.mutated(attribute, current);
 
-                Vue.set(this._attributes, attribute, mutated);
+                getVM().set(this._attributes, attribute, mutated);
             });
         }
     }
@@ -470,11 +469,11 @@ class Model extends Base {
 
         // Sync either specific attributes or all attributes if none provided.
         if (isUndefined(attribute)) {
-            Vue.set(this, '_reference', active);
+            getVM().set(this, '_reference', active);
 
         } else {
             each(castArray(attribute), (attribute) => {
-                Vue.set(this._reference, attribute, get(active, attribute));
+                getVM().set(this._reference, attribute, get(active, attribute));
             });
         }
 
@@ -538,7 +537,7 @@ class Model extends Base {
             value = this.mutated(attribute, value);
         }
 
-        Vue.set(this._attributes, attribute, value);
+        getVM().set(this._attributes, attribute, value);
 
         // Only consider a change if the attribute was already defined.
         let changed = defined && ! isEqual(previous, value);
@@ -547,7 +546,7 @@ class Model extends Base {
             
             // Validate on change only if it's not the first time it's set.
             if (this.getOption('validateOnChange')) {
-                Vue.nextTick(() => this.validateAttribute(attribute));
+                getVM().nextTick(() => this.validateAttribute(attribute));
             } 
 
             // Emit the change event after 
@@ -577,7 +576,7 @@ class Model extends Base {
         // Unset either specific attributes or all attributes if none provided.
         each(castArray(attributes), (attribute) => {
             if (this.has(attribute)) {
-                Vue.set(this._attributes, attribute, get(defaults, attribute));
+                getVM().set(this._attributes, attribute, get(defaults, attribute));
             }
         });
     }
@@ -768,8 +767,8 @@ class Model extends Base {
 
         this.assign(attributes);
 
-        Vue.set(this, 'fatal',   false);
-        Vue.set(this, 'loading', false);
+        getVM().set(this, 'fatal',   false);
+        getVM().set(this, 'loading', false);
 
         this.emit('fetch', {error: null});
     }
@@ -780,8 +779,8 @@ class Model extends Base {
      * @param {Error}  error
      */
     onFetchFailure(error) {
-        Vue.set(this, 'fatal',   true);
-        Vue.set(this, 'loading', false);
+        getVM().set(this, 'fatal',   true);
+        getVM().set(this, 'loading', false);
 
         this.emit('fetch', {error});
     }
@@ -944,9 +943,9 @@ class Model extends Base {
      */
     setAttributeErrors(attribute, errors) {
         if (isEmpty(errors)) {
-            Vue.delete(this._errors, attribute);
+            getVM().delete(this._errors, attribute);
         } else {
-            Vue.set(this._errors, attribute, castArray(errors));
+            getVM().set(this._errors, attribute, castArray(errors));
         }
     }
 
@@ -957,7 +956,7 @@ class Model extends Base {
      */
     setErrors(errors) {
         if (isEmpty(errors)) {
-            Vue.set(this, '_errors', {});
+            getVM().set(this, '_errors', {});
             return;
         }
 
@@ -982,7 +981,7 @@ class Model extends Base {
      */
     clearErrors() {
         this.setErrors({});
-        Vue.set(this, 'fatal', false);
+        getVM().set(this, 'fatal', false);
     }
 
     /**
@@ -1009,8 +1008,8 @@ class Model extends Base {
             this.update(responseData);
         }
 
-        Vue.set(this, 'saving', false);
-        Vue.set(this, 'fatal',  false);
+        getVM().set(this, 'saving', false);
+        getVM().set(this, 'fatal',  false);
 
         // Automatically add to all registered collections.
         this.addToAllCollections();
@@ -1036,8 +1035,8 @@ class Model extends Base {
 
         this.setErrors(errors);
 
-        Vue.set(this, 'fatal',  false);
-        Vue.set(this, 'saving', false);
+        getVM().set(this, 'fatal',  false);
+        getVM().set(this, 'saving', false);
     }
 
     /**
@@ -1050,8 +1049,8 @@ class Model extends Base {
     onFatalSaveFailure(error) {
         this.clearErrors();
 
-        Vue.set(this, 'fatal',  true);
-        Vue.set(this, 'saving', false);
+        getVM().set(this, 'fatal',  true);
+        getVM().set(this, 'saving', false);
     }
 
     /**
@@ -1077,8 +1076,8 @@ class Model extends Base {
         this.clear();
         this.removeFromAllCollections();
 
-        Vue.set(this, 'deleting', false);
-        Vue.set(this, 'fatal',    false);
+        getVM().set(this, 'deleting', false);
+        getVM().set(this, 'fatal',    false);
 
         this.emit('delete', {error: null});
     }
@@ -1089,8 +1088,8 @@ class Model extends Base {
      * @param {Error}  error
      */
     onDeleteFailure(error) {
-        Vue.set(this, 'deleting', false);
-        Vue.set(this, 'fatal',    true);
+        getVM().set(this, 'deleting', false);
+        getVM().set(this, 'fatal',    true);
 
         this.emit('delete', {error});
     }
@@ -1108,7 +1107,7 @@ class Model extends Base {
                 return resolve(Base.REQUEST_SKIP);
             }
 
-            Vue.set(this, 'loading', true);
+            getVM().set(this, 'loading', true);
             return resolve(Base.REQUEST_CONTINUE);
         });
     }
@@ -1153,7 +1152,7 @@ class Model extends Base {
                 return;
             }
 
-            Vue.set(this, 'saving', true);
+            getVM().set(this, 'saving', true);
 
             // Mutate attribute before we save if required to do so.
             if (this.getOption('mutateBeforeSave')) {
@@ -1166,7 +1165,7 @@ class Model extends Base {
                     return;
                 }
 
-                Vue.set(this, 'saving', false);
+                getVM().set(this, 'saving', false);
                 reject(this.createValidationError(this.errors));
                 return;
             });
@@ -1184,7 +1183,7 @@ class Model extends Base {
         }
 
         return new Promise((resolve, reject) => {
-            Vue.set(this, 'deleting', true);
+            getVM().set(this, 'deleting', true);
             resolve(Base.REQUEST_CONTINUE);
         });
     }
