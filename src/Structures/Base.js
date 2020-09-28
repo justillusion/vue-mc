@@ -25,7 +25,7 @@ const REQUEST_CONTINUE  = 0;
 const REQUEST_REDUNDANT = 1;
 const REQUEST_SKIP      = 2;
 
-export default function getVM () {
+export function getVM () {
     return typeof window !== 'undefined' && window.Vue ? window.Vue : Vue
 }
 
